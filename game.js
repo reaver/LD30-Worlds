@@ -13,6 +13,7 @@ var leftmapContainer;
 var rightmapContainer;
 var guiContainer;
 var permanentContainer;
+var backgroundContainer;
 
 var canvas;
 var canvasStage;
@@ -25,11 +26,15 @@ var map_done = false;
 var map_l;
 var map_r;
 
-var wallColor = "#E7E7E7";
+var wallColor = "#666666";
 var completedColor = "#DD3344";
 var boxColor = "#13E7FF";
 var playerColor = "#000000";
+var emptyColor = "#E7E7E7";
 var goalColor = "#11FF11";
+
+var leftColor = "#777777";
+var rightColor = "#777777";
 
 var font = "20px Lucida Console";
 
@@ -81,6 +86,11 @@ function setup(){
         	//console.log("Down");
         	loadMapProperties();
         }
+        else if (e.which == 84){
+        	//console.log("Down");
+        	mapID = 1;
+        	loadMapProperties();
+        }
         else if (e.which == 77){
         	//console.log("Down");
         	muted = !muted
@@ -115,7 +125,9 @@ function setup(){
 	rightmapContainer = new createjs.Container();
 	guiContainer = new createjs.Container();
 	permanentContainer = new createjs.Container();
+	backgroundContainer = new createjs.Container();
 
+	canvasStage.addChild(backgroundContainer);
 	canvasStage.addChild(leftmapContainer);
 	canvasStage.addChild(rightmapContainer);
 	canvasStage.addChild(guiContainer);
@@ -123,6 +135,7 @@ function setup(){
 
 	setContainerPlacement();
 	loadMapProperties();
+	createBackground();
     createjs.Sound.play("level");
 }
 
@@ -278,7 +291,7 @@ function addTile(index, tileChar, container){
 	//console.log("Create Tile: " + tileChar);
 
 	if (tileChar == "w") {
-		tile.graphics.beginFill(wallColor).drawRect(x*tile_size, y*tile_size, tile_size, tile_size);
+		tile.graphics.beginFill(wallColor).drawRect(x*tile_size+2, y*tile_size+2, tile_size-4, tile_size-4);
 	}
 	else if (tileChar == "b") {
 		tile.graphics.beginFill(boxColor).drawRect(x*tile_size, y*tile_size, tile_size, tile_size);
@@ -293,9 +306,25 @@ function addTile(index, tileChar, container){
 		playerX = x;
 		playerY = y;
 		tile.graphics.beginFill(playerColor).drawRect(x*tile_size, y*tile_size, tile_size, tile_size);
+	}else{
+		tile.graphics.beginFill(emptyColor).drawRect(x*tile_size + 5, y*tile_size + 5, tile_size-10, tile_size-10);
 	}
 
 	container.addChild(tile);
+}
+
+function createBackground(){
+	var leftbackground = new createjs.Shape();
+	leftbackground.graphics.beginFill(leftColor).drawRect( 0, 0, tile_size*board_width, tile_size*board_height);
+	backgroundContainer.addChild(leftbackground);
+
+	var rightbackground = new createjs.Shape();
+	rightbackground.graphics.beginFill(rightColor).drawRect( board_width * tile_size + tile_size, 0, tile_size*board_width, tile_size*board_height);
+	backgroundContainer.addChild(rightbackground);
+
+	backgroundContainer.x = 0;
+	backgroundContainer.y = tile_size;
+
 }
 
 function setContainerPlacement(){
@@ -324,7 +353,7 @@ function checkWinCondition(){
 
 function startScreen(){
 	
-	var startText = new createjs.Text("Use WASD to move.\nPress r to reset level.\nPress m to toggle mute.", font, "#000000");
+	var startText = new createjs.Text("Use WASD to move.\nPress r to reset level.\nPress t to restart from scratch.\nPress m to toggle mute.", font, "#000000");
 	startText.x = 0;
 	startText.y = board_height * tile_size + 2 * tile_size;
 	startText.lineWidth = board_width * tile_size;
