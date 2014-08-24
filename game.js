@@ -12,23 +12,26 @@ var graphics;
 var leftmapContainer;
 var rightmapContainer;
 var guiContainer;
+var permanentContainer;
 
 var canvas;
 var canvasStage;
 var canvasContext;
 
 var mapID;
-var numberOfMaps = 2;
+var numberOfMaps = 9;
 var map_data;
 var map_done = false;
 var map_l;
 var map_r;
 
 var wallColor = "#E7E7E7";
-var completedColor = "#DDE7AA";
+var completedColor = "#DD3344";
 var boxColor = "#13E7FF";
 var playerColor = "#000000";
 var goalColor = "#11FF11";
+
+var font = "20px Lucida Console";
 
 var tile_size = 30;
 var board_height = 10;
@@ -37,6 +40,10 @@ var board_width = 10;
 var playerX;
 var playerY;
 var prevTile = "";
+var rightPrevTile = "";
+
+var firstMove = true;
+var muted = false;
 
 $(document).ready(function(){
 
@@ -74,10 +81,16 @@ function setup(){
         	//console.log("Down");
         	loadMapProperties();
         }
+        else if (e.which == 77){
+        	//console.log("Down");
+        	muted = !muted
+        	createjs.Sound.setMute(muted);
+        }
         else if (e.which == 67){
         	//console.log("Down");
-        	if (map_done){
+        	if (map_done && mapID<numberOfMaps){
         		mapID++;
+        		createjs.Sound.play("level");
         		loadMapProperties();
         	}
         }
@@ -90,17 +103,27 @@ function setup(){
 
 	graphics = new createjs.Graphics();
 
+	//Load sounds.
+	createjs.Sound.alternateExtensions = ["wav"];
+	createjs.Sound.registerSound("sound/move.wav", "move");
+	createjs.Sound.registerSound("sound/wall.wav", "wall");
+	createjs.Sound.registerSound("sound/complete.wav", "complete");
+	createjs.Sound.registerSound("sound/level.wav", "level");
+	createjs.Sound.setVolume(0.5);
+
 	leftmapContainer = new createjs.Container();
 	rightmapContainer = new createjs.Container();
 	guiContainer = new createjs.Container();
+	permanentContainer = new createjs.Container();
 
 	canvasStage.addChild(leftmapContainer);
 	canvasStage.addChild(rightmapContainer);
 	canvasStage.addChild(guiContainer);
+	canvasStage.addChild(permanentContainer);
 
 	setContainerPlacement();
-
 	loadMapProperties();
+    createjs.Sound.play("level");
 }
 
 function getLeftTileRelativePlayerPosition(dirX, dirY){
@@ -118,24 +141,29 @@ function move(dirX, dirY){
 
 	var canMove = true;
 
-	if (nextTile == "w"){
+	if (nextTile == "w" || rightNextTile == "g"){
     	//console.log("wall");
 		//Player hitting wall. Can not proceed.
+		createjs.Sound.play("wall");
 		return;
 	}	
 	
 	if(rightNextTile == "b") {
-		nextnextTile = getRightTileRelativePlayerPosition(2 * dirX, 2 * dirY);
+		var nextnextTile = getRightTileRelativePlayerPosition(2 * dirX, 2 * dirY);
+		var leftnextnextTile = getLeftTileRelativePlayerPosition(2 * dirX, 2 * dirY);
 
-		if (nextnextTile == "w") {
+		if (nextnextTile == "w" || nextnextTile == "b" || leftnextnextTile == "w") {
 			//Do nothing.
+			createjs.Sound.play("wall");
 			return;
 		}else if (nextnextTile == "g") {
 			map_r[playerY + 2 * dirY][playerX + 2 * dirX] = "c";
-			map_r[playerY + dirY][playerX + dirX] = prevTile;
+			map_r[playerY + dirY][playerX + dirX] = rightPrevTile;
+			createjs.Sound.play("complete");
 		}
 		else{
-			map_r[playerY + dirY][playerX + dirX] = prevTile;
+			map_r[playerY + dirY][playerX + dirX] = rightPrevTile;
+			rightPrevTile = map_r[playerY + 2 * dirY][playerX + 2 * dirX];
 			map_r[playerY + 2 * dirY][playerX + 2 * dirX] = "b";
 		}
 
@@ -147,6 +175,7 @@ function move(dirX, dirY){
 		playerY += dirY;
 		playerX += dirX;
 		map_l[playerY][playerX] = "p";
+		createjs.Sound.play("move");
 	}
 
 	gameStep();
@@ -165,10 +194,10 @@ function loadMapProperties(){
 	$.getJSON(mapPath, function( json ){
 		console.log("Loading map.");
 		map_data = json;
+		loadMap();
 
 	}).done(function(){
 		console.log("Loading map done.");
-		loadMap();
 	}).fail(function(){
 		console.log("Loading map " + mapID + " failed.");
 	});
@@ -189,8 +218,12 @@ function loadMap(){
 		map_l.push(leftinner);
 		map_r.push(rightinner);
 	}
-	map_done = false
+	map_done = false;
 	guiContainer.removeAllChildren();
+	if (mapID == 1){
+		firstMove = true;
+		startScreen();
+	}
 	refreshMap();
 }
 
@@ -208,13 +241,18 @@ function refreshMap(){
 			addTile((i*board_height) + j, right_tile, rightmapContainer);
 		}
 	}
-	console.log("Update stage.");
+	//console.log("Update stage.");
 	setContainerPlacement();
 	canvasStage.update();
 }
 
 function gameStep(){
 	refreshMap();
+
+	if (firstMove) {
+		guiContainer.removeAllChildren();
+		firstMove = false;
+	}
 
 	//checkWinCondition
 	if (!map_done && checkWinCondition()){
@@ -268,6 +306,9 @@ function setContainerPlacement(){
 	
 	guiContainer.x = leftmapContainer.x;
 	guiContainer.y = leftmapContainer.y;
+
+	permanentContainer.x = rightmapContainer.x;
+	permanentContainer.y = rightmapContainer.y;
 }
 
 function checkWinCondition(){
@@ -283,25 +324,27 @@ function checkWinCondition(){
 
 function startScreen(){
 	
-	var startText = new createjs.Text("Use WASD to move.", "20px Arail", "#000000");
+	var startText = new createjs.Text("Use WASD to move.\nPress r to reset level.\nPress m to toggle mute.", font, "#000000");
 	startText.x = 0;
 	startText.y = board_height * tile_size + 2 * tile_size;
-	startText.lineWidth = 200;
+	startText.lineWidth = board_width * tile_size;
+	startText.lineHeight = tile_size;
 
-	guiContainer.addChild(startText);
+	permanentContainer.addChild(startText);
 	canvasStage.update();	
 
 }
 
 function gameDoneScreen(){
 
-	leftmapContainer.removeAllChildren();
-	rightmapContainer.removeAllChildren();
+	//leftmapContainer.removeAllChildren();
+	//rightmapContainer.removeAllChildren();
 
-	var gameDoneText = new createjs.Text("You have completed the game. Thank you for playing. This game was made for Ludum Dare 30.", "20px Arail", "#000000");
+	var gameDoneText = new createjs.Text("You have completed the game.\nThank you for playing.", font, "#000000");
 	gameDoneText.x = 0;
 	gameDoneText.y = board_height * tile_size + 2 * tile_size;
-	gameDoneText.lineWidth = 200;
+	gameDoneText.lineWidth = board_width * tile_size;
+	gameDoneText.lineHeight = tile_size;
 
 
 	guiContainer.addChild(gameDoneText);
@@ -311,9 +354,12 @@ function gameDoneScreen(){
 
 function mapDoneScreen(){
 
-	var mapDoneText = new createjs.Text("Level Complete. Press c to continue.", "20px Arail", "#000000");
+	var mapDoneText = new createjs.Text("Level Complete. Press c to continue.", font, "#000000");
 	mapDoneText.x = 0;
 	mapDoneText.y = board_height * tile_size + 2 * tile_size;
+	mapDoneText.lineWidth = board_width * tile_size;
+	mapDoneText.lineHeight = tile_size;
+
 	guiContainer.addChild(mapDoneText);
 	canvasStage.update();
 	
