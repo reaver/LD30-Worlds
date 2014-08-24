@@ -281,6 +281,18 @@ function checkWinCondition(){
 	return true;
 }
 
+function startScreen(){
+	
+	var startText = new createjs.Text("Use WASD to move.", "20px Arail", "#000000");
+	startText.x = 0;
+	startText.y = board_height * tile_size + 2 * tile_size;
+	startText.lineWidth = 200;
+
+	guiContainer.addChild(startText);
+	canvasStage.update();	
+
+}
+
 function gameDoneScreen(){
 
 	leftmapContainer.removeAllChildren();
