@@ -115,10 +115,10 @@ function setup(){
 
 	//Load sounds.
 	createjs.Sound.alternateExtensions = ["wav"];
-	createjs.Sound.registerSound("sound/move.wav", "move");
-	createjs.Sound.registerSound("sound/wall.wav", "wall");
-	createjs.Sound.registerSound("sound/complete.wav", "complete");
-	createjs.Sound.registerSound("sound/level.wav", "level");
+	createjs.Sound.registerSound("gamefiles/sound/move.wav", "move");
+	createjs.Sound.registerSound("gamefiles/sound/wall.wav", "wall");
+	createjs.Sound.registerSound("gamefiles/sound/complete.wav", "complete");
+	createjs.Sound.registerSound("gamefiles/sound/level.wav", "level");
 	createjs.Sound.setVolume(0.5);
 
 	leftmapContainer = new createjs.Container();
@@ -202,7 +202,7 @@ function resetLevel(){
 
 function loadMapProperties(){
 
-	var mapPath = "map"+mapID+".json";
+	var mapPath = "gamefiles/map"+mapID+".json";
 
 	$.getJSON(mapPath, function( json ){
 		console.log("Loading map.");
